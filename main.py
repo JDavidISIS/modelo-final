@@ -9,6 +9,7 @@ from optimization import optimizar_posicion_alabes
 from joblib import load
 from pydantic import BaseModel
 import base64
+import time
 
 app = FastAPI()
 
@@ -28,7 +29,8 @@ async def read_root():
 
 @app.post("/optimizar/")
 async def optimizar(input_params: str = Form(...), file: UploadFile = File(...)):
-    # Convertir los parámetros JSON a un objeto Python
+    start_time = time.time()
+
     params = json.loads(input_params)
     input_data = InputParams(**params)
     
@@ -54,6 +56,10 @@ async def optimizar(input_params: str = Form(...), file: UploadFile = File(...))
         resultados_dict = resultados_optimizacion.to_dict(orient='records')
     else:
         resultados_dict = {"message": "No se encontraron resultados válidos."}
+
+    end_time = time.time()  # Detiene el cronómetro
+    processing_time = end_time - start_time
+    print(f"Tiempo de procesamiento: {processing_time} segundos")
 
     return {"resultados_optimizacion": resultados_dict}
 
