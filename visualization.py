@@ -77,7 +77,7 @@ def generate_efi(data_final_positive, best_results=None):
 
     plt.xlabel('Potencia Activa (MW)')
     plt.ylabel('Eficiencia')
-    plt.title('Caudal vs Eficiencia con Línea de Tendencia')
+    plt.title('Potencia vs Eficiencia')
     plt.legend()
 
     return plt
