@@ -5,7 +5,7 @@ import io
 import base64
 
 
-def generate_graph(data_final_positive):
+def generate_graph(data_final_positive, best_results=None):
     # Define el número de puntos en la malla para una mayor resolución
     num_points = 10
 
@@ -64,3 +64,38 @@ def generate_graph(data_final_positive):
     ax.set_title('Eficiencia y Potencia en función de Cabeza y Caudal')
 
     return fig
+
+def generate_efi(data_final_positive, best_results=None):
+    plt.figure(figsize=(8, 6))
+    plt.scatter(data_final_positive['POTENCIA_ACTIVA_ALT_GI'], data_final_positive['Eficiencia'], label='Puntos de Eficiencia')
+
+    # Resaltar el mejor punto de eficiencia
+    if best_results is not None and not best_results.empty:
+        # Suponiendo que best_results está ordenado por eficiencia y el mejor resultado es el primero
+        best_point = best_results.iloc[0]
+        plt.scatter(best_point['Potencia (MW)'], best_point['Eficiencia'], color='red', label='Mejor Punto de Eficiencia')
+
+    plt.xlabel('Potencia Activa (MW)')
+    plt.ylabel('Eficiencia')
+    plt.title('Caudal vs Eficiencia con Línea de Tendencia')
+    plt.legend()
+
+    return plt
+
+
+def generate_efi2(data_final_positive, best_results=None):
+    # Gráfico de Caudal vs Eficiencia con línea de tendencia
+    plt.figure(figsize=(8, 6))
+    plt.scatter(data_final_positive['MED_CAUDAL_TUBERÍA_REG_REG_TGI'], data_final_positive['Eficiencia'])
+
+    # Resaltar el mejor punto de eficiencia
+    if best_results is not None and not best_results.empty:
+        # Suponiendo que best_results está ordenado por eficiencia y el mejor resultado es el primero
+        best_point = best_results.iloc[0]
+        plt.scatter(best_point['Caudal (m^3/s)'], best_point['Eficiencia'], color='red', label='Mejor Punto de Eficiencia')
+
+    plt.xlabel('Caudal (m^3/s)')
+    plt.ylabel('Eficiencia')
+    plt.title('Caudal vs Eficiencia')
+
+    return plt

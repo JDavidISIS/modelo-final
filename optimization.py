@@ -19,10 +19,9 @@ def optimizar_posicion_alabes(data_final_positive, pipeline, potencia_deseada, c
     if data_cercana.empty:
         # No hay registros cercanos, se realiza la predicción
         for posicion_alabes in range(101):  # De 0 a 100
-            datos_prediccion = pd.DataFrame([[posicion_alabes, potencia_deseada, cabeza]],
-                                    columns=['POSICION_DIST_TGI', 'POTENCIA_ACTIVA_ALT_GI', 'Cabeza'])
+            datos_prediccion = pd.DataFrame([[posicion_alabes, cabeza]],
+                                    columns=['POSICION_DIST_TGI', 'Cabeza'])
             
-            # Predecir el caudal para esta posición de álabes
             caudal_predicho = pipeline.predict(datos_prediccion)[0]
 
             # Calcular la eficiencia teórica
@@ -32,7 +31,8 @@ def optimizar_posicion_alabes(data_final_positive, pipeline, potencia_deseada, c
             if eficiencia_min <= eficiencia_calculada <= eficiencia_max:
                 resultados_validos.append({
                     'Eficiencia': eficiencia_calculada,
-                    'Posicion Álabes': posicion_alabes, 
+                    'Posicion Álabes (%)': posicion_alabes,
+                    'Caudal (m^3/s)': caudal_predicho  
                 })
     else:
         # Hay registros cercanos, se utilizan directamente
@@ -40,14 +40,17 @@ def optimizar_posicion_alabes(data_final_positive, pipeline, potencia_deseada, c
             if eficiencia_min <= row['Eficiencia'] <= eficiencia_max:
                 resultados_validos.append({
                     'Eficiencia': row['Eficiencia'],
-                    'Posicion Álabes': row['POSICION_DIST_TGI'],
+                    'Posicion Álabes (%)': row['POSICION_DIST_TGI'],
+                    'Caudal (m^3/s)': row['MED_CAUDAL_TUBERÍA_REG_REG_TGI']
                 })
                 
-    if not resultados_validos:
+    if resultados_validos:
+        df_resultados = pd.DataFrame(resultados_validos)
+        df_resultados['Cabeza (m)'] = cabeza
+        df_resultados['Potencia (MW)'] = potencia_deseada
+        df_resultados.sort_values(by='Eficiencia', ascending=False, inplace=True)
+        return df_resultados
+    else:
         return pd.DataFrame({'Mensaje': ['No se encontraron configuraciones válidas dentro del rango de eficiencia.']})
     
-    # Convertir los resultados en un DataFrame y ordenarlos por eficiencia
-    df_resultados = pd.DataFrame(resultados_validos)
-    df_resultados.sort_values(by='Eficiencia', ascending=False, inplace=True)
 
-    return df_resultados
