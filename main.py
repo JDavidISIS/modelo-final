@@ -1,87 +1,56 @@
-import json
-from fastapi import FastAPI, File, UploadFile, Form
-from matplotlib import pyplot as plt
+import streamlit as st
 import pandas as pd
-from io import BytesIO
-from preprocessor import CustomPreprocessor
 from visualization import generate_graph
 from optimization import optimizar_posicion_alabes
+from preprocessor import CustomPreprocessor
 from joblib import load
-from pydantic import BaseModel
-import base64
-import time
 
-app = FastAPI()
+st.set_page_config(page_title='Optimización de Álabes')
 
-# Cargar el modelo entrenado
 modelo = load('modelo_entrenado.joblib')
 
+st.markdown("<h1 style='text-align: center; color: #D5752D;'>Aplicación para la Optimización de Posición de Álabes</h1>", unsafe_allow_html=True)
 
-class InputParams(BaseModel):
-    potencia_deseada: float
-    cabeza: float
-    eficiencia_min: float
-    eficiencia_max: float
 
-@app.get("/")
-async def read_root():
-    return {"Hello": "World"}
+st.write('Por favor, cargue el archivo Excel con los registros necesarios para la visualización y la optimización.')
+uploaded_file = st.file_uploader("", type=["xlsx"])
 
-@app.post("/optimizar/")
-async def optimizar(input_params: str = Form(...), file: UploadFile = File(...)):
-    start_time = time.time()
 
-    params = json.loads(input_params)
-    input_data = InputParams(**params)
-    
-    contents = await file.read()
-    df = pd.read_excel(BytesIO(contents))
-
-    # Preprocesamiento
+if uploaded_file is not None:
+    df = pd.read_excel(uploaded_file)
     preprocessor = CustomPreprocessor()
     processed_data = preprocessor.transform(df)
 
-    # Llamada a la función de optimización con los parámetros del usuario
-    resultados_optimizacion = optimizar_posicion_alabes(
-        processed_data, 
-        modelo,  
-        input_data.potencia_deseada, 
-        input_data.cabeza, 
-        input_data.eficiencia_min, 
-        input_data.eficiencia_max
-    )
 
-    # Convertir los resultados a un formato que pueda ser serializado por FastAPI, por ejemplo, a un diccionario
-    if isinstance(resultados_optimizacion, pd.DataFrame):
-        resultados_dict = resultados_optimizacion.to_dict(orient='records')
-    else:
-        resultados_dict = {"message": "No se encontraron resultados válidos."}
-
-    end_time = time.time()  # Detiene el cronómetro
-    processing_time = end_time - start_time
-    print(f"Tiempo de procesamiento: {processing_time} segundos")
-
-    return {"resultados_optimizacion": resultados_dict}
-
-@app.post("/generar_grafico/")
-async def generar_grafico(file: UploadFile = File(...)):
-    contents = await file.read()
-    df = pd.read_excel(BytesIO(contents))
-
-    # Preprocesamiento
-    preprocessor = CustomPreprocessor()
-    processed_data = preprocessor.transform(df)
-
-    # Generar gráfico
+    # Generar y mostrar gráfica
+    st.header('Curvas de Nivel')
     grafico = generate_graph(processed_data)
+    st.pyplot(grafico)
 
-    # Convertir el gráfico a formato base64 para Power BI
-    buf = BytesIO()
-    grafico.savefig(buf, format='png')
-    buf.seek(0)
-    grafico_base64 = base64.b64encode(buf.read()).decode("ascii")
 
-    # No olvides cerrar el gráfico después de guardar
-    plt.close(grafico)
+    cabeza_min, cabeza_max = processed_data['Cabeza'].min(), processed_data['Cabeza'].max()
+    potencia_min, potencia_max = processed_data['POTENCIA_ACTIVA_ALT_GI'].min(), processed_data['POTENCIA_ACTIVA_ALT_GI'].max()
 
-    return {"grafico_base64": grafico_base64}
+    # Mostrar mensaje con los rangos de los datos
+    st.info(f"Rango de cabeza: {cabeza_min} - {cabeza_max}")
+    st.info(f"Rango de potencia: {potencia_min} - {potencia_max}")
+
+    # Pedir parámetros para la optimización
+    st.header('Parámetros de Optimización')
+    potencia_deseada = st.number_input('Potencia (MW) deseada:', min_value=0.0)
+    cabeza = st.number_input('Cabeza (m):', min_value=0.0)
+    eficiencia_min = st.number_input('Límite Inferior Eficiencia (0-1):', 0.0, 1.0, 0.0)
+    eficiencia_max = st.number_input('Límite Superior Eficiencia (0-1):', 0.0, 1.0, 1.0)
+    optimizar_button = st.button('Optimizar')
+
+    # Mostrar resultados de la optimización
+    if optimizar_button and uploaded_file is not None:
+        if potencia_deseada < potencia_min or potencia_deseada > potencia_max or cabeza < cabeza_min or cabeza > cabeza_max:
+            st.error("Los valores de entrada están fuera del rango aceptable.")
+        else:
+            resultados_optimizacion = optimizar_posicion_alabes(
+                processed_data, modelo, potencia_deseada, cabeza, eficiencia_min, eficiencia_max
+            )
+            if resultados_optimizacion is not None:
+                st.header('Resultados de Optimización')
+                st.table(resultados_optimizacion)
