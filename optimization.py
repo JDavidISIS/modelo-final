@@ -32,8 +32,7 @@ def optimizar_posicion_alabes(data_final_positive, pipeline, potencia_deseada, c
             if eficiencia_min <= eficiencia_calculada <= eficiencia_max:
                 resultados_validos.append({
                     'Eficiencia': eficiencia_calculada,
-                    'Posicion Álabes': posicion_alabes,
-                    'Caudal': caudal_predicho
+                    'Posicion Álabes': posicion_alabes, 
                 })
     else:
         # Hay registros cercanos, se utilizan directamente
@@ -42,9 +41,11 @@ def optimizar_posicion_alabes(data_final_positive, pipeline, potencia_deseada, c
                 resultados_validos.append({
                     'Eficiencia': row['Eficiencia'],
                     'Posicion Álabes': row['POSICION_DIST_TGI'],
-                    'Caudal': row['MED_CAUDAL_TUBERÍA_REG_REG_TGI']
                 })
-
+                
+    if not resultados_validos:
+        return pd.DataFrame({'Mensaje': ['No se encontraron configuraciones válidas dentro del rango de eficiencia.']})
+    
     # Convertir los resultados en un DataFrame y ordenarlos por eficiencia
     df_resultados = pd.DataFrame(resultados_validos)
     df_resultados.sort_values(by='Eficiencia', ascending=False, inplace=True)
