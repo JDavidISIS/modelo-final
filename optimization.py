@@ -9,7 +9,7 @@ def optimizar_posicion_alabes(data_final_positive, pipeline, potencia_deseada, c
         print("Los valores de entrada están fuera del rango aceptable.")
         return pd.DataFrame() 
     
-    # Filtrar los datos para registros cercanos tanto a la potencia como a la cabeza deseada
+    
     data_cercana = data_final_positive[(data_final_positive['POTENCIA_ACTIVA_ALT_GI'] >= potencia_deseada - 0.1) & 
                         (data_final_positive['POTENCIA_ACTIVA_ALT_GI'] <= potencia_deseada + 0.1) &
                         (data_final_positive['Cabeza'] >= cabeza - 0.1) &
@@ -17,17 +17,14 @@ def optimizar_posicion_alabes(data_final_positive, pipeline, potencia_deseada, c
 
     resultados_validos = []
     if data_cercana.empty:
-        # No hay registros cercanos, se realiza la predicción
         for posicion_alabes in range(101):  # De 0 a 100
             datos_prediccion = pd.DataFrame([[posicion_alabes, cabeza]],
                                     columns=['POSICION_DIST_TGI', 'Cabeza'])
             
             caudal_predicho = pipeline.predict(datos_prediccion)[0]
 
-            # Calcular la eficiencia teórica
             eficiencia_calculada = (potencia_deseada * 1000000) / (1000 * 9.81 * caudal_predicho * cabeza)
 
-            # Verificar si los valores predichos están dentro de los rangos aceptables
             if eficiencia_min <= eficiencia_calculada <= eficiencia_max:
                 resultados_validos.append({
                     'Eficiencia': eficiencia_calculada,
@@ -35,7 +32,7 @@ def optimizar_posicion_alabes(data_final_positive, pipeline, potencia_deseada, c
                     'Caudal (m^3/s)': caudal_predicho  
                 })
     else:
-        # Hay registros cercanos, se utilizan directamente
+    
         for _, row in data_cercana.iterrows():
             if eficiencia_min <= row['Eficiencia'] <= eficiencia_max:
                 resultados_validos.append({
